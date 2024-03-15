@@ -1,5 +1,4 @@
 import pandas as pd
-from statsmodels.tsa.stattools import adfuller, kpss
 from statsmodels.tsa.arima.model import ARIMA
 
 # Загружаем данные
@@ -11,46 +10,10 @@ print(dataset_1.head())
 print(dataset_2.head())
 
 # Предположим, что вы найдете правильное название столбца и замените "your_column_name" на него
-data_column_1 = dataset_1["data_1"]
+data_column_1 = dataset_1["data"]
 print()
-data_column_2 = dataset_2["x_pole"]
+data_column_2 = dataset_2["yuan"]
 
-
-def get_dickey_fuller_test(data):
-    # Проверяем на стационарность с помощью ADF-теста
-    adf_result = adfuller(data)
-    print("Результаты расширенного теста Дикки-Фуллера")
-    print(f"Статистика расширенного теста Дикки-Фуллера: {adf_result[0]}")
-    print(f"p-value: {adf_result[1]}")
-    print("Критические значения:", adf_result[4])
-    if adf_result[0] > adf_result[4]["5%"]:
-        print("Есть единичные корни, ряд не стационарен")
-    else:
-        print("Единичных корней нет, ряд стационарен")
-
-
-def get_kpss_test(data):
-    # Проверяем на стационарность с помощью KPSS-теста
-    kpss_result = kpss(data)
-    print("\nРезультаты теста Квятковского-Филлипса-Шмидта-Шина:")
-    print(f"Статистика теста Квятковского-Филлипса-Шмидта-Шина: {kpss_result[0]}")
-    print(f"p-value: {kpss_result[1]}")
-    print(f"Используемые лаги: {kpss_result[2]}")
-    print("Критические значения:")
-    for key, value in kpss_result[3].items():
-        print(f"   {key}: {value}")
-
-    # Проверяем гипотезу о стационарности
-    if kpss_result[1] < 0.05:
-        print("Нулевая гипотеза о стационарности отвергается. Ряд нестационарен.")
-    else:
-        print("Нулевая гипотеза о стационарности не отвергается. Ряд стационарен.")
-
-
-get_dickey_fuller_test(data_column_1)
-get_dickey_fuller_test(data_column_2)
-
-print()
 
 model_1 = ARIMA(data_column_1, order=(1, 1, 1))
 model_fit_1 = model_1.fit()
