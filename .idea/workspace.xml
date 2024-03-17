@@ -4,9 +4,11 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="b8d0b9c8-4e97-44d8-b2dd-6d289eda3caf" name="Changes" comment="task 1, 2">
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+    <list default="true" id="b8d0b9c8-4e97-44d8-b2dd-6d289eda3caf" name="Changes" comment="laba 2, первый запуск, тестирование ARIMA">
+      <change afterPath="$PROJECT_DIR$/aic.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/bsts.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -34,6 +36,8 @@
   </component>
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
+    "Python.aic.executor": "Run",
+    "Python.bsts.executor": "Run",
     "Python.main.executor": "Run",
     "RunOnceActivity.OpenProjectViewOnStart": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
@@ -64,11 +68,20 @@
       <option name="project" value="LOCAL" />
       <updated>1709309207643</updated>
     </task>
-    <option name="localTasksCounter" value="2" />
+    <task id="LOCAL-00002" summary="laba 2, первый запуск, тестирование ARIMA">
+      <option name="closed" value="true" />
+      <created>1710494269998</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1710494269998</updated>
+    </task>
+    <option name="localTasksCounter" value="3" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="task 1, 2" />
-    <option name="LAST_COMMIT_MESSAGE" value="task 1, 2" />
+    <MESSAGE value="laba 2, первый запуск, тестирование ARIMA" />
+    <option name="LAST_COMMIT_MESSAGE" value="laba 2, первый запуск, тестирование ARIMA" />
   </component>
 </project>
