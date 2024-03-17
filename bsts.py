@@ -3,8 +3,8 @@ import pystan
 import numpy as np
 
 # Загрузка данных
-dataset_1 = pd.read_csv("1.csv", delimiter=";", decimal=",")
-dataset_2 = pd.read_csv("1_2.csv", delimiter=";", decimal=",")
+dataset_1 = pd.read_csv("data_x.csv", delimiter=";", decimal=",")
+dataset_2 = pd.read_csv("yuan.csv", delimiter=";", decimal=",")
 
 # Предполагаем, что вы найдете правильное название столбца и замените "your_column_name" на него
 data_column_1 = dataset_1["data"]

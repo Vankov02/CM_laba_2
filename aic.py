@@ -7,8 +7,8 @@ import warnings
 warnings.filterwarnings("ignore")  # Чтобы игнорировать предупреждения об инвертируемых параметрах
 
 # Загрузка данных
-dataset_1 = pd.read_csv("1.csv", delimiter=";", decimal=",")
-dataset_2 = pd.read_csv("1_2.csv", delimiter=";", decimal=",")
+dataset_1 = pd.read_csv("data_x.csv", delimiter=";", decimal=",")
+dataset_2 = pd.read_csv("yuan.csv", delimiter=";", decimal=",")
 
 # Инициализация списка для хранения результатов
 results = []
