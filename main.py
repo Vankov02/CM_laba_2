@@ -1,9 +1,12 @@
+import numpy as np
 import pandas as pd
 from statsmodels.tsa.arima.model import ARIMA
 from statsmodels.tools.eval_measures import rmse
 import matplotlib.pyplot as plt
+from scipy.stats import shapiro
 
-from CM_laba_2.task3 import component_analysis
+from CM_laba_2.t3_get_seasonal_component import fourier_analysis
+from CM_laba_2.t3_get_trend_component import model_fit
 
 # Интервал для анализа
 period = 30
@@ -55,4 +58,79 @@ print("Прогноз для Юань:\n", forecast_2)
 
 # 3. ---------------------------------------
 # Функция выделяет трендовую, сезонную и остаточную составляющие
-component_analysis(model_fit_for_x, model_fit_for_yuan)
+
+# ------- ДЛЯ X
+
+t = []
+for i in range(1, len(x) + 1):
+    t.append(i)
+
+best_fit_model, min_mse, best_model_name = model_fit(np.array(t), x.values)
+print(f"Трендовая составляющая: {best_model_name}, МНК: {min_mse}")
+
+# Остатки
+resids = x.values - best_fit_model(np.array(t))
+
+# Проверка нормальности
+statistic, p_value = shapiro(resids)
+
+print("Статистика теста:", statistic)
+print("p-value:", p_value)
+
+# Оценка результата
+alpha = 0.05
+if p_value > alpha:
+    print("Остатки имеют нормальное распределение (не отвергаем нулевую гипотезу)")
+else:
+    print("Остатки не имеют нормальное распределение (отвергаем нулевую гипотезу)")
+
+# ------- ДЛЯ Юань
+
+t_yuan = []
+for i in range(1, len(yuan) + 1):
+    t_yuan.append(i)
+
+# best_fit_model_yuan - тренд
+best_fit_model_yuan, min_mse_yuan, best_model_name_yuan = model_fit(np.array(t_yuan), yuan.values)
+print(f"Трендовая составляющая: {best_model_name_yuan}, МНК: {min_mse_yuan}")
+
+# Остатки
+resids_yuan = yuan.values - best_fit_model_yuan(np.array(t_yuan))
+
+# Проверка нормальности
+statistic, p_value = shapiro(resids_yuan)
+
+print("Статистика теста:", statistic)
+print("p-value:", p_value)
+
+# Оценка результата
+alpha = 0.05
+if p_value > alpha:
+    print("Остатки имеют нормальное распределение (не отвергаем нулевую гипотезу)")
+else:
+    print("Остатки не имеют нормальное распределение (отвергаем нулевую гипотезу)")
+
+    # Функция, в которую подставляем значения, чтоб получить сезонную составляющую
+    seasonal_component_model = fourier_analysis(t_yuan, resids_yuan, 3)
+
+    resids2 = resids_yuan - seasonal_component_model(np.array(t_yuan))
+
+    plt.plot(t_yuan, resids_yuan, label='Resids')
+    plt.show()
+
+    plt.plot(t_yuan, resids2, label='Resids without seasonal component')
+    plt.show()
+
+    # Проверка нормальности с помощью теста Шапиро-Уилка
+    statistic, p_value = shapiro(resids2)
+
+    # Вывод результатов
+    print("Статистика теста:", statistic)
+    print("p-value:", p_value)
+
+    # Оценка результата
+    alpha = 0.05
+    if p_value > alpha:
+        print("Остатки без сезонной компоненты имеют нормальное распределение (не отвергаем нулевую гипотезу)")
+    else:
+        print("Остатки без сезонной компоненты не имеют нормальное распределение (отвергаем нулевую гипотезу)")
