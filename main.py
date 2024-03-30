@@ -60,7 +60,10 @@ print("Прогноз для Юань:\n", forecast_2)
 # Функция выделяет трендовую, сезонную и остаточную составляющие
 
 # ------- ДЛЯ X
+print('--------------------------------------')
+print('Для исходных данных')
 
+# Массив из чисел от 1 до 87. Т.к. x из pandas он не хавает
 t = []
 for i in range(1, len(x) + 1):
     t.append(i)
@@ -73,7 +76,6 @@ resids = x.values - best_fit_model(np.array(t))
 
 # Проверка нормальности
 statistic, p_value = shapiro(resids)
-
 print("Статистика теста:", statistic)
 print("p-value:", p_value)
 
@@ -85,6 +87,8 @@ else:
     print("Остатки не имеют нормальное распределение (отвергаем нулевую гипотезу)")
 
 # ------- ДЛЯ Юань
+print('--------------------------------------')
+print('Для Юань')
 
 t_yuan = []
 for i in range(1, len(yuan) + 1):
@@ -99,7 +103,6 @@ resids_yuan = yuan.values - best_fit_model_yuan(np.array(t_yuan))
 
 # Проверка нормальности
 statistic, p_value = shapiro(resids_yuan)
-
 print("Статистика теста:", statistic)
 print("p-value:", p_value)
 
@@ -111,14 +114,21 @@ else:
     print("Остатки не имеют нормальное распределение (отвергаем нулевую гипотезу)")
 
     # Функция, в которую подставляем значения, чтоб получить сезонную составляющую
-    seasonal_component_model = fourier_analysis(t_yuan, resids_yuan, 3)
+    seasonal_component = fourier_analysis(t_yuan, resids_yuan).real
 
-    resids2 = resids_yuan - seasonal_component_model(np.array(t_yuan))
+    resids2 = resids_yuan - seasonal_component
 
-    plt.plot(t_yuan, resids_yuan, label='Resids')
-    plt.show()
+    # График остатков
+    plt.subplot(2, 1, 1)  # 2 строки, 1 столбец, первый график
+    plt.plot(t_yuan, resids_yuan)
+    plt.title('Остатки')
 
-    plt.plot(t_yuan, resids2, label='Resids without seasonal component')
+    # График остатков без сезонной компоненты
+    plt.subplot(2, 1, 2)  # 2 строки, 1 столбец, второй график
+    plt.plot(t_yuan, resids2)
+    plt.title('Остатки без сезонной компоненты')
+
+    # Отображение обоих графиков
     plt.show()
 
     # Проверка нормальности с помощью теста Шапиро-Уилка
