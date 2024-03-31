@@ -64,18 +64,22 @@ print('--------------------------------------')
 print('Для исходных данных')
 
 # Массив из чисел от 1 до 87. Т.к. x из pandas он не хавает
+x_len = 60
+
 t = []
-for i in range(1, len(x) + 1):
+for i in range(1, x_len+1):
     t.append(i)
 
-best_fit_model, min_mse, best_model_name = model_fit(np.array(t), x.values)
+best_fit_model, min_mse, best_model_name = model_fit(np.array(t), x.values[:x_len])
 print(f"Трендовая составляющая: {best_model_name}, МНК: {min_mse}")
 
+trend_x = best_fit_model(np.array(t[:x_len]))
+
 # Остатки
-resids = x.values - best_fit_model(np.array(t))
+resids_x = x.values[:x_len] - trend_x
 
 # Проверка нормальности
-statistic, p_value = shapiro(resids)
+statistic, p_value = shapiro(resids_x)
 print("Статистика теста:", statistic)
 print("p-value:", p_value)
 
@@ -86,25 +90,41 @@ if p_value > alpha:
 else:
     print("Остатки не имеют нормальное распределение (отвергаем нулевую гипотезу)")
 
+rmse_x = rmse(x.values[:x_len], trend_x + resids_x)
+print('Среднеквадратическое отклонение: ', rmse_x)
+
+plt.figure(figsize=(10, 6))
+plt.plot(t, x.values[:x_len], label='Фактические значения')
+plt.plot(t, trend_x + resids_x, label='Предсказанные значения')
+plt.title("Тренд/сезон")
+plt.xlabel("t")
+plt.ylabel("x")
+plt.legend()
+plt.show()
+
 # ------- ДЛЯ Юань
 print('--------------------------------------')
 print('Для Юань')
-
+yuan_len = 250
 t_yuan = []
-for i in range(1, len(yuan) + 1):
+for i in range(1, yuan_len+1):
     t_yuan.append(i)
 
 # best_fit_model_yuan - тренд
-best_fit_model_yuan, min_mse_yuan, best_model_name_yuan = model_fit(np.array(t_yuan), yuan.values)
+best_fit_model_yuan, min_mse_yuan, best_model_name_yuan = model_fit(np.array(t_yuan), yuan.values[:yuan_len])
 print(f"Трендовая составляющая: {best_model_name_yuan}, МНК: {min_mse_yuan}")
 
+trend_yuan = best_fit_model_yuan(np.array(t_yuan[:yuan_len]))
+
 # Остатки
-resids_yuan = yuan.values - best_fit_model_yuan(np.array(t_yuan))
+resids_yuan = yuan.values[:yuan_len] - trend_yuan
 
 # Проверка нормальности
 statistic, p_value = shapiro(resids_yuan)
 print("Статистика теста:", statistic)
 print("p-value:", p_value)
+
+seasonal_yuan = []
 
 # Оценка результата
 alpha = 0.05
@@ -114,18 +134,20 @@ else:
     print("Остатки не имеют нормальное распределение (отвергаем нулевую гипотезу)")
 
     # Функция, в которую подставляем значения, чтоб получить сезонную составляющую
-    seasonal_component = fourier_analysis(t_yuan, resids_yuan).real
+    seasonal_component = fourier_analysis(t_yuan[:yuan_len], resids_yuan).real
+
+    seasonal_yuan = seasonal_component
 
     resids2 = resids_yuan - seasonal_component
 
     # График остатков
     plt.subplot(2, 1, 1)  # 2 строки, 1 столбец, первый график
-    plt.plot(t_yuan, resids_yuan)
+    plt.plot(t_yuan[:yuan_len], resids_yuan)
     plt.title('Остатки')
 
     # График остатков без сезонной компоненты
     plt.subplot(2, 1, 2)  # 2 строки, 1 столбец, второй график
-    plt.plot(t_yuan, resids2)
+    plt.plot(t_yuan[:yuan_len], resids2)
     plt.title('Остатки без сезонной компоненты')
 
     # Отображение обоих графиков
@@ -144,3 +166,15 @@ else:
         print("Остатки без сезонной компоненты имеют нормальное распределение (не отвергаем нулевую гипотезу)")
     else:
         print("Остатки без сезонной компоненты не имеют нормальное распределение (отвергаем нулевую гипотезу)")
+
+rmse_x = rmse(yuan.values[:yuan_len], trend_yuan + resids_yuan + seasonal_yuan)
+print('Среднеквадратическое отклонение: ', rmse_x)
+
+plt.figure(figsize=(10, 6))
+plt.plot(t_yuan, yuan.values[:yuan_len], label='Фактические значения')
+plt.plot(t_yuan, trend_yuan + resids_yuan + seasonal_yuan, label='Предсказанные значения')
+plt.title("Тренд/сезон")
+plt.xlabel("t")
+plt.ylabel("x")
+plt.legend()
+plt.show()
