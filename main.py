@@ -1,3 +1,4 @@
+import numpy
 import numpy as np
 import pandas as pd
 from statsmodels.tsa.arima.model import ARIMA
@@ -67,7 +68,7 @@ print('Для исходных данных')
 x_len = 60
 
 t = []
-for i in range(1, x_len+1):
+for i in range(1, x_len + 1):
     t.append(i)
 
 best_fit_model, min_mse, best_model_name = model_fit(np.array(t), x.values[:x_len])
@@ -105,26 +106,36 @@ plt.show()
 # ------- ДЛЯ Юань
 print('--------------------------------------')
 print('Для Юань')
-yuan_len = 250
+# Размер обучающей выборки
+yuan_len = 150
+# Размер интервала предсказаний
+predict_interval = 20
+
+# Инициализируем массив t
 t_yuan = []
-for i in range(1, yuan_len+1):
+for i in range(1, yuan_len + 1):
     t_yuan.append(i)
 
-# best_fit_model_yuan - тренд
+# best_fit_model_yuan - модель, описывающая тренд
 best_fit_model_yuan, min_mse_yuan, best_model_name_yuan = model_fit(np.array(t_yuan), yuan.values[:yuan_len])
 print(f"Трендовая составляющая: {best_model_name_yuan}, МНК: {min_mse_yuan}")
 
+# Получаем трендовую составляющую обучающей выборки
 trend_yuan = best_fit_model_yuan(np.array(t_yuan[:yuan_len]))
 
-# Остатки
+# Получаем остатки обучающей выборки
 resids_yuan = yuan.values[:yuan_len] - trend_yuan
 
-# Проверка нормальности
+# Проверяем остатки на нормальность по тесту Шапиро
 statistic, p_value = shapiro(resids_yuan)
 print("Статистика теста:", statistic)
 print("p-value:", p_value)
 
+# Значения сезонной составляющей обучающей выборки
 seasonal_yuan = []
+# Инициализируем модель, описывающую сезонную составляющую
+# Далее мы используем модель для прогноза
+predicted_seasonal_component = None
 
 # Оценка результата
 alpha = 0.05
@@ -133,10 +144,11 @@ if p_value > alpha:
 else:
     print("Остатки не имеют нормальное распределение (отвергаем нулевую гипотезу)")
 
-    # Функция, в которую подставляем значения, чтоб получить сезонную составляющую
-    seasonal_component = fourier_analysis(t_yuan[:yuan_len], resids_yuan).real
-
-    seasonal_yuan = seasonal_component
+    # seasonal_component - значения сезонной составляющей обучающей выборки
+    #
+    seasonal_component, predicted_seasonal_component = fourier_analysis(t_yuan[:yuan_len], resids_yuan,
+                                                                        predict_interval)
+    seasonal_yuan = seasonal_component.real
 
     resids2 = resids_yuan - seasonal_component
 
@@ -167,14 +179,41 @@ else:
     else:
         print("Остатки без сезонной компоненты не имеют нормальное распределение (отвергаем нулевую гипотезу)")
 
-rmse_x = rmse(yuan.values[:yuan_len], trend_yuan + resids_yuan + seasonal_yuan)
+# Увеличиваем временной ряд на predict_interval значений
+len_yuan = len(t_yuan)
+for i in range(1, predict_interval + 1):
+    t_yuan.append(len_yuan + i)
+
+predict_trend = best_fit_model_yuan(np.array(t_yuan[:yuan_len + predict_interval]))
+
+seasonal_yuan = np.concatenate((seasonal_yuan, predicted_seasonal_component))
+
+rmse_x = rmse(yuan.values[yuan_len:yuan_len + predict_interval],
+              (predict_trend + seasonal_yuan)[yuan_len:yuan_len + predict_interval])
 print('Среднеквадратическое отклонение: ', rmse_x)
 
-plt.figure(figsize=(10, 6))
-plt.plot(t_yuan, yuan.values[:yuan_len], label='Фактические значения')
-plt.plot(t_yuan, trend_yuan + resids_yuan + seasonal_yuan, label='Предсказанные значения')
+plt.figure(figsize=(12, 6))
+
+plt.subplot(2, 1, 1)  # 2 строки, 1 столбец, первый subplot
+plt.plot(t_yuan[yuan_len:yuan_len + predict_interval], yuan.values[yuan_len:yuan_len + predict_interval],
+         label='Фактические значения')
+plt.plot(t_yuan[yuan_len:yuan_len + predict_interval],
+         (predict_trend + seasonal_yuan)[yuan_len:yuan_len + predict_interval],
+         label='Предсказанные значения')
 plt.title("Тренд/сезон")
 plt.xlabel("t")
 plt.ylabel("x")
 plt.legend()
+
+# Создаем второй subplot
+plt.subplot(2, 1, 2)  # 2 строки, 1 столбец, второй subplot
+plt.plot(t_yuan[yuan_len:yuan_len + predict_interval],
+         yuan.values[yuan_len:yuan_len + predict_interval] - (predict_trend + seasonal_yuan)[
+                                                             yuan_len:yuan_len + predict_interval],
+         label='Отклонение')
+plt.title("Отклонение")
+plt.xlabel("t")
+plt.ylabel("Отклонение")
+
+plt.tight_layout()
 plt.show()
