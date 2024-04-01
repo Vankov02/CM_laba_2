@@ -1,72 +1,61 @@
 import pandas as pd
-import pystan
 import numpy as np
-
-# Загрузка данных
-dataset_1 = pd.read_csv("data_x.csv", delimiter=";", decimal=",")
-dataset_2 = pd.read_csv("yuan.csv", delimiter=";", decimal=",")
-
-# Предполагаем, что вы найдете правильное название столбца и замените "your_column_name" на него
-data_column_1 = dataset_1["data"]
-data_column_2 = dataset_2["yuan"]
+import matplotlib.pyplot as plt
+from pybuc import buc
 
 
-# Определение функции для вычисления среднеквадратического отклонения
-def compute_rmse(y_true, y_pred):
-    return np.sqrt(np.mean((y_true - y_pred) ** 2))
+def forecast_accuracy(actual, forecast):
+    mape = np.mean(np.abs(forecast - actual) / np.abs(actual)) # MAPE
+    rmse = np.mean((forecast - actual) ** 2) ** 0.5 # RMSE
+    return {'mape': mape, 'rmse': rmse}
 
 
-# Определение функции для построения и оценки модели BSTS
-def build_and_evaluate_bsts(data, interval_length):
-    # Построение BSTS модели
-    bsts_model_code = """
-    data {
-        int<lower=0> T; // Количество наблюдений
-        vector[T] y;    // Временной ряд
-    }
-    parameters {
-        real mu;                // Среднее
-        real<lower=0> sigma;    // Стандартное отклонение
-    }
-    model {
-        y ~ normal(mu, sigma);  // Модель нормального распределения
-    }
-    """
-    # Подготовка данных
-    data_dict = {'T': len(data), 'y': data.values}
-    # Компиляция модели
-    compiled_model = pystan.StanModel(model_code=bsts_model_code)
-    # Вычисление параметров модели
-    bsts_fit = compiled_model.sampling(data=data_dict)
-    # Получение результатов моделирования
-    bsts_results = bsts_fit.extract(permuted=True)
-    # Вычисление среднеквадратического отклонения
-    rmse_value = compute_rmse(data[-interval_length:], bsts_results['mu'][-interval_length:])
-    return rmse_value
+# Считывание данных из файла
+file = "yuan1.csv"  # Укажите имя вашего файла с данными о курсе юаня
+df = pd.read_csv(file, sep=';', header=None, names=['time', 'value'])
+print(df)
 
+# Преобразование данных в формат временного ряда
+time_series = pd.Series(df['value'].values, index=pd.to_datetime(df['time'], format="%d.%m.%Y %H:%M"))
 
-# Создание пустого DataFrame для хранения результатов
-results = pd.DataFrame(columns=['Длина мерного интервала', 'p', 'q', 'Cреднеквадратическое отклонение'])
+# Разделение данных на обучающую и тестовую выборки
+train_data = time_series[:-270]  # Последние 100 значений будут использоваться для тестирования
+test_data = time_series[-270:]
 
-# Определение длин мерных интервалов
-interval_lengths = [len(data_column_1), len(data_column_2)]
+# Создание модели Байесовских временных рядов
+bayes_uc = buc.BayesianUnobservedComponents(response=train_data, level=True, stochastic_level=True, trend=True,
+                                            stochastic_trend=True, trig_seasonal=((2, 0),),
+                                            stochastic_trig_seasonal=(True,))
+post = bayes_uc.sample(5000)
+#  метод sample, который используется для выполнения семплирования из постериорного распределения модели. Здесь 5000
+#  - это количество сэмплов, которые мы хотим получить из постериорного распределения. Чем больше количество сэмплов,
+#  тем более точные оценки мы можем получить, но это также увеличивает время выполнения.
+mcmc_burn = 0
+#  количество "прогревочных" итераций (burn-in iterations) для метода MCMC (Markov Chain Monte Carlo), которые мы хотим
+#  использовать перед тем, как начать сохранять сэмплы из постериорного распределения. Здесь установлено значение 0, что
+#  означает, что мы не будем использовать прогревочные итерации, и начнем сохранять сэмплы сразу после начала
+#  сэмплирования.
 
-# Определение параметров p и q
-parameters_to_explore = [
-    {'p': 1, 'q': 0},
-    {'p': 0, 'q': 1},
-    # Другие комбинации параметров для исследования
-]
+# Получение и построение прогноза
+forecast, _ = bayes_uc.forecast(100, mcmc_burn)
 
-# Выполнение моделирования для каждого временного ряда и параметров p, q
-for interval_length in interval_lengths:
-    for params in parameters_to_explore:
-        p = params['p']
-        q = params['q']
-        # Выполнение моделирования BSTS
-        rmse_value = build_and_evaluate_bsts(data_column_1, interval_length)  # Передаем первый временной ряд
-        results = results.append({'Длина мерного интервала': interval_length, 'p': p, 'q': q,
-                                  'Cреднеквадратическое отклонение': rmse_value}, ignore_index=True)
+# Рассчитываем квантили 0.025 и 0.975 для интервала с уровнем доверия 0.95
+# lower_quantile = np.percentile(forecast, 2.5, axis=0)
+# upper_quantile = np.percentile(forecast, 97.5, axis=0)
 
-# Вывод результатов
-print(results)
+forecast_mean = np.mean(forecast, axis=0)
+plt.plot(test_data)
+plt.plot(bayes_uc.future_time_index, forecast_mean)
+plt.title('Прогноз курса юаня')
+plt.legend(['Истинное значение', 'Прогноз'])
+plt.show()
+
+# Расчет и вывод MAPE и RMSE
+accuracy = forecast_accuracy(test_data.values, forecast_mean)
+print("Точность прогноза:")
+print("MAPE:", accuracy['mape'])
+print("RMSE:", accuracy['rmse'])
+
+# Рассчитываем среднеквадратичное отклонение на уровне доверия 0.95
+# std_95 = (upper_quantile - lower_quantile) / 3.92  # Коэффициент для уровня доверия 0.95
+# print("Среднеквадратичное отклонение (0.95):", np.mean(std_95))
