@@ -65,7 +65,8 @@ print('--------------------------------------')
 print('Для исходных данных')
 
 # Массив из чисел от 1 до 87. Т.к. x из pandas он не хавает
-x_len = 60
+x_len = 30
+x_predict = 10
 
 t = []
 for i in range(1, x_len + 1):
@@ -74,7 +75,11 @@ for i in range(1, x_len + 1):
 best_fit_model, min_mse, best_model_name = model_fit(np.array(t), x.values[:x_len])
 print(f"Трендовая составляющая: {best_model_name}, МНК: {min_mse}")
 
+for i in range(x_len, x_len + x_predict):
+    t.append(i)
+
 trend_x = best_fit_model(np.array(t[:x_len]))
+predict_x = best_fit_model(np.array(t))
 
 # Остатки
 resids_x = x.values[:x_len] - trend_x
@@ -91,12 +96,12 @@ if p_value > alpha:
 else:
     print("Остатки не имеют нормальное распределение (отвергаем нулевую гипотезу)")
 
-rmse_x = rmse(x.values[:x_len], trend_x + resids_x)
+rmse_x = rmse(x.values[x_len:x_len+x_predict], predict_x[x_len:x_len+x_predict])
 print('Среднеквадратическое отклонение: ', rmse_x)
 
 plt.figure(figsize=(10, 6))
-plt.plot(t, x.values[:x_len], label='Фактические значения')
-plt.plot(t, trend_x + resids_x, label='Предсказанные значения')
+plt.plot(t, x.values[:x_len+x_predict], label='Фактические значения')
+plt.plot(t, predict_x, label='Предсказанные значения')
 plt.title("Тренд/сезон")
 plt.xlabel("t")
 plt.ylabel("x")
