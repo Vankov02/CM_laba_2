@@ -1,3 +1,5 @@
+import math
+
 import numpy
 import numpy as np
 import pandas as pd
@@ -96,11 +98,11 @@ if p_value > alpha:
 else:
     print("Остатки не имеют нормальное распределение (отвергаем нулевую гипотезу)")
 
-rmse_x = rmse(x.values[x_len:x_len+x_predict], predict_x[x_len:x_len+x_predict])
+rmse_x = rmse(x.values[x_len:x_len + x_predict], predict_x[x_len:x_len + x_predict])
 print('Среднеквадратическое отклонение: ', rmse_x)
 
 plt.figure(figsize=(10, 6))
-plt.plot(t, x.values[:x_len+x_predict], label='Фактические значения')
+plt.plot(t, x.values[:x_len + x_predict], label='Фактические значения')
 plt.plot(t, predict_x, label='Предсказанные значения')
 plt.title("Тренд/сезон")
 plt.xlabel("t")
@@ -111,25 +113,26 @@ plt.show()
 # ------- ДЛЯ Юань
 print('--------------------------------------')
 print('Для Юань')
+start_index = 200
 # Размер обучающей выборки
-yuan_len = 150
+yuan_len = 250
 # Размер интервала предсказаний
-predict_interval = 20
+predict_interval = 10
 
 # Инициализируем массив t
 t_yuan = []
-for i in range(1, yuan_len + 1):
+for i in range(start_index, yuan_len):
     t_yuan.append(i)
 
 # best_fit_model_yuan - модель, описывающая тренд
-best_fit_model_yuan, min_mse_yuan, best_model_name_yuan = model_fit(np.array(t_yuan), yuan.values[:yuan_len])
+best_fit_model_yuan, min_mse_yuan, best_model_name_yuan = model_fit(np.array(t_yuan), yuan.values[start_index:yuan_len])
 print(f"Трендовая составляющая: {best_model_name_yuan}, МНК: {min_mse_yuan}")
 
 # Получаем трендовую составляющую обучающей выборки
-trend_yuan = best_fit_model_yuan(np.array(t_yuan[:yuan_len]))
+trend_yuan = best_fit_model_yuan(np.array(t_yuan))
 
 # Получаем остатки обучающей выборки
-resids_yuan = yuan.values[:yuan_len] - trend_yuan
+resids_yuan = yuan.values[start_index:yuan_len] - trend_yuan
 
 # Проверяем остатки на нормальность по тесту Шапиро
 statistic, p_value = shapiro(resids_yuan)
@@ -138,9 +141,13 @@ print("p-value:", p_value)
 
 # Значения сезонной составляющей обучающей выборки
 seasonal_yuan = []
+# seasonal_yuan2 = []
 # Инициализируем модель, описывающую сезонную составляющую
 # Далее мы используем модель для прогноза
+# Предсказание сезонной компоненты(остатки)
 predicted_seasonal_component = None
+# Предсказание сезонной компоненты(Остатки 2 = остатки1 - ещё раз выделили сезонную)
+# predicted_seasonal_component2 = None
 
 # Оценка результата
 alpha = 0.05
@@ -150,25 +157,44 @@ else:
     print("Остатки не имеют нормальное распределение (отвергаем нулевую гипотезу)")
 
     # seasonal_component - значения сезонной составляющей обучающей выборки
-    #
-    seasonal_component, predicted_seasonal_component = fourier_analysis(t_yuan[:yuan_len], resids_yuan,
+    seasonal_component, predicted_seasonal_component = fourier_analysis(t_yuan, resids_yuan,
                                                                         predict_interval)
+    # получаем значения сезонной компоненты
     seasonal_yuan = seasonal_component.real
 
-    resids2 = resids_yuan - seasonal_component
+    resids2 = resids_yuan - seasonal_component.real
+
+    # seasonal_component2, predicted_seasonal_component2 = fourier_analysis(t_yuan[:yuan_len], resids2,
+    #                                                                       predict_interval)
+    # seasonal_yuan2 = seasonal_component2.real
+    #
+    # resids3 = resids2 - seasonal_component2
 
     # График остатков
     plt.subplot(2, 1, 1)  # 2 строки, 1 столбец, первый график
-    plt.plot(t_yuan[:yuan_len], resids_yuan)
+    plt.plot(t_yuan, resids_yuan)
     plt.title('Остатки')
 
     # График остатков без сезонной компоненты
     plt.subplot(2, 1, 2)  # 2 строки, 1 столбец, второй график
-    plt.plot(t_yuan[:yuan_len], resids2)
+    plt.plot(t_yuan, resids2)
     plt.title('Остатки без сезонной компоненты')
 
-    # Отображение обоих графиков
-    plt.show()
+    # # Отображение обоих графиков
+    # plt.show()
+    #
+    # # График остатков
+    # plt.subplot(2, 1, 1)  # 2 строки, 1 столбец, первый график
+    # plt.plot(t_yuan[:yuan_len], resids_yuan)
+    # plt.title('Остатки')
+    #
+    # # График остатков без сезонной компоненты
+    # plt.subplot(2, 1, 2)  # 2 строки, 1 столбец, второй график
+    # plt.plot(t_yuan[:yuan_len], resids3)
+    # plt.title('Остатки без сезонной компоненты')
+    #
+    # # Отображение обоих графиков
+    # plt.show()
 
     # Проверка нормальности с помощью теста Шапиро-Уилка
     statistic, p_value = shapiro(resids2)
@@ -185,25 +211,35 @@ else:
         print("Остатки без сезонной компоненты не имеют нормальное распределение (отвергаем нулевую гипотезу)")
 
 # Увеличиваем временной ряд на predict_interval значений
-len_yuan = len(t_yuan)
-for i in range(1, predict_interval + 1):
-    t_yuan.append(len_yuan + i)
+for i in range(yuan_len + 1, yuan_len + 1 + predict_interval):
+    t_yuan.append(i)
 
-predict_trend = best_fit_model_yuan(np.array(t_yuan[:yuan_len + predict_interval]))
+predict_trend = best_fit_model_yuan(np.array(t_yuan))
 
-seasonal_yuan = np.concatenate((seasonal_yuan, predicted_seasonal_component))
+# seasonal_yuan = np.concatenate((seasonal_yuan + seasonal_yuan2, predicted_seasonal_component + predicted_seasonal_component2))
+
+# Если сезонная компонента есть, то делаем конкатенацию из массивов
+# сезонной компоненты и предскзаанной сезонной компоненты
+# Иначе - заполняем массив нулями, чтоб прога не ломалась
+if (predicted_seasonal_component is None):
+    seasonal_yuan = [0] * ((yuan_len - start_index) + predict_interval)
+else:
+    seasonal_yuan = np.concatenate((seasonal_yuan, predicted_seasonal_component))
 
 rmse_x = rmse(yuan.values[yuan_len:yuan_len + predict_interval],
-              (predict_trend + seasonal_yuan)[yuan_len:yuan_len + predict_interval])
+              (predict_trend + seasonal_yuan)[-predict_interval])
 print('Среднеквадратическое отклонение: ', rmse_x)
+
+lower_graph_bound = start_index
+upper_graph_bound = yuan_len + predict_interval
 
 plt.figure(figsize=(12, 6))
 
 plt.subplot(2, 1, 1)  # 2 строки, 1 столбец, первый subplot
-plt.plot(t_yuan[yuan_len:yuan_len + predict_interval], yuan.values[yuan_len:yuan_len + predict_interval],
+plt.plot(t_yuan, yuan.values[start_index:yuan_len + predict_interval],
          label='Фактические значения')
-plt.plot(t_yuan[yuan_len:yuan_len + predict_interval],
-         (predict_trend + seasonal_yuan)[yuan_len:yuan_len + predict_interval],
+plt.plot(t_yuan,
+         (predict_trend + seasonal_yuan),
          label='Предсказанные значения')
 plt.title("Тренд/сезон")
 plt.xlabel("t")
@@ -212,9 +248,8 @@ plt.legend()
 
 # Создаем второй subplot
 plt.subplot(2, 1, 2)  # 2 строки, 1 столбец, второй subplot
-plt.plot(t_yuan[yuan_len:yuan_len + predict_interval],
-         yuan.values[yuan_len:yuan_len + predict_interval] - (predict_trend + seasonal_yuan)[
-                                                             yuan_len:yuan_len + predict_interval],
+plt.plot(t_yuan,
+         yuan.values[start_index:yuan_len + predict_interval] - (predict_trend + seasonal_yuan),
          label='Отклонение')
 plt.title("Отклонение")
 plt.xlabel("t")
